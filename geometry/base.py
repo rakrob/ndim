@@ -2,6 +2,46 @@ import numpy as np
 from geometry.factories import *
 
 
+class Geometry:
+    """
+    Base class for all ndim objects. Defines some properties that should be implemented in all higher-level classes.
+
+    Some compromises were made here in order to enforce non-optional properties that really should be implemented for
+    any custom geometries that might be included in ndim later. Any base classes (i.e., classes that are not
+    collections) should inherit from Geometry and define a dimension and a signature, in order to make absolutely sure
+    that coordinates systems do not get mismatched at runtime.
+
+    Enforcing the mandatory override of properties isn't exactly pythonic, but effort should be made going forward
+    to keep the number of mandatory properties to a minimum.
+    """
+
+    def __init__(self):
+        """Placeholder for now, but I'm certain some initialization behaviors will need to be defined eventually."""
+        pass
+
+    @property
+    def dimension(self):
+        raise NotImplementedError(
+            'This property should be implemented on a per-class basis, defined by the number of linearly independent '
+            'dimensions that define the object.')
+
+    @dimension.setter
+    def dimension(self, dimension):
+        raise AttributeError('The dimension of an object is read-only.')
+
+    @property
+    def signature(self):
+        raise NotImplementedError(
+            'This property should be implemented on a per-class basis, defined by a hash function consisting of some '
+            'tuple of the dimension of the object and the indices of the other attributes in internal arrays. No '
+            'standard form is enforced, but it is recommended that the signatures of the underlying geometry match in '
+            'addition to the top-level objects.')
+
+    @signature.setter
+    def signature(self, signature):
+        raise AttributeError('The signature of an object is a hash of its dimension and properties, and is read-only.')
+
+
 def Point(*args, **kwargs):
     """
     Returns an instance of a point with dimension equal to the number of arguments.
@@ -33,9 +73,11 @@ def Point(*args, **kwargs):
     class_attr_dict.update({'__setitem__': setitem_factory()})
 
     class_attr_dict.update({'dimension': dimension_property_factory()})
+    class_attr_dict.update({'signature': signature_property_factory(len(internal_array), property_name_index)})
 
     # Create the class, instance it, and set values of properties before returning our newly instanced class object
-    point_cls = type(f'{len(internal_array)}D Point', (), class_attr_dict)
+    # Make sure to inherit from the Geometry class
+    point_cls = type(f'{len(internal_array)}D Point', (Geometry,), class_attr_dict)
     point_instance = point_cls()
     point_instance._values = internal_array
 
