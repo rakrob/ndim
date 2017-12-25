@@ -70,3 +70,99 @@ def test_dimension():
     y = Point(1, 2, z=3, x=4, n=5)
 
     assert y.dimension == 5
+
+
+def test_signature():
+    x = Point(1, 2, 3)
+    y = Point(x=1, y=2, z=3)
+
+    assert x.signature != y.signature
+
+    z = Point(4, 5, 6)
+    w = Point(x=4, y=5, z=6)
+
+    assert x.signature == z.signature
+    assert y.signature == w.signature
+
+
+def test_repr():
+    x = Point(1, 2, 3)
+
+    assert str(x) == "(1.00, 2.00, 3.00)"
+
+
+def test_hash():
+    x = Point(1, 2, 3)
+    y = Point(1, 2, 3)
+    w = Point(3, 4, 5, 6)
+    z = Point(x=1, y=2, z=3)
+
+    assert x.__hash__() == y.__hash__()
+    assert x.__hash__() != z.__hash__()
+    assert x.__hash__() != w.__hash__()
+
+
+def test_equality():
+    x = Point(1, 2, 3)
+    y = Point(1, 2, 3)
+
+    q = Point(4, 5, 6)
+
+    z = Point(x=1, y=2, z=3)
+    w = Point(x=1, y=2, z=3)
+
+    assert x == y
+    assert z == w
+
+    assert x != q
+
+    caught_exception = None
+
+    try:
+        assert x == z
+    except TypeError as e:
+        caught_exception = e
+    finally:
+        assert caught_exception is not None
+
+
+def test_add():
+    x = Point(1, 2, 3)
+    y = Point(2, 4, 6)
+
+    z = Point(3, 4, 5)
+
+    assert x + x == y
+    assert x + 2 == 2 + x == z
+
+    w = Point(x=1, y=2, z=3)
+
+    caught_exception = None
+
+    try:
+        assert x + w == y
+    except TypeError as e:
+        caught_exception = e
+    finally:
+        assert caught_exception is not None
+
+
+def test_negative():
+    x = Point(1, 2, 3)
+    y = Point(-1, -2, -3)
+
+    assert -x == y
+
+
+def test_subtract():
+    x = Point(1, 2, 3)
+    y = Point(2, 4, 6)
+
+    z = Point(3, 4, 5)
+
+    w = Point(2, 1, 0)
+
+    assert y - x == x
+    assert z - 2 == x
+
+    assert 5 - z == w

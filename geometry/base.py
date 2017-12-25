@@ -16,7 +16,7 @@ class Geometry:
     """
 
     def __init__(self):
-        """Placeholder for now, but I'm certain some initialization behaviors will need to be defined eventually."""
+        # Placeholder for now, but I'm certain some initialization behaviors will need to be defined eventually.
         pass
 
     @property
@@ -27,6 +27,9 @@ class Geometry:
 
     @dimension.setter
     def dimension(self, dimension):
+        # Dimension needs to be readonly. There's absolutely no way to add a dimension to a point in a way that's
+        # foolproof. Instead, if a dimension needs to be added to a Geometric object, a new class/object should be
+        # created.
         raise AttributeError('The dimension of an object is read-only.')
 
     @property
@@ -39,6 +42,7 @@ class Geometry:
 
     @signature.setter
     def signature(self, signature):
+        # If dimension can't change, then signature can't change. This is textbook readonly territory.
         raise AttributeError('The signature of an object is a hash of its dimension and properties, and is read-only.')
 
 
@@ -72,6 +76,10 @@ def Point(*args, **kwargs):
     class_attr_dict.update({'__getitem__': getitem_factory()})
     class_attr_dict.update({'__setitem__': setitem_factory()})
 
+    # Assign functions for the standard math operators
+    class_attr_dict.update(operator_function_factory(property_name_index))
+
+    # Make sure to override the property getters in Geometry, otherwise we'll throw errors when reading them
     class_attr_dict.update({'dimension': dimension_property_factory()})
     class_attr_dict.update({'signature': signature_property_factory(len(internal_array), property_name_index)})
 
