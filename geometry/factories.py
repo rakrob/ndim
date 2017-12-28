@@ -35,7 +35,7 @@ def key_lookup_property_factory(property_index) -> property:
 
 
 def dimension_property_factory() -> property:
-    """Defining all metaclass properties in factories seems like a nicer way of doing things, DRY, etc."""
+    # Defining all metaclass properties in factories seems like a nicer way of doing things, DRY, etc.
 
     def dimension_get(self):
         return len(self._values)
@@ -134,7 +134,7 @@ def operator_function_factory(property_indices) -> dict:
     multifunction_dict.update({'__radd__': radd})
 
     def sub(self, other):
-        return self.__add__(other.__neg__())
+        return self.__add__(- other)
 
     multifunction_dict.update({'__sub__': sub})
 
