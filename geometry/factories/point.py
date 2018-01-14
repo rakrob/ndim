@@ -61,11 +61,20 @@ def signature_property_factory(dimension, property_indices) -> property:
 def operator_function_factory(property_indices) -> dict:
     """Defines custom functions for the operators +, -, *, /, ==, and **, as well as __hash__ and __repr__"""
     multifunction_dict = {}
+    type_error_description = \
+        'This operation is not defined for types %s and %s. This error can ' + \
+        'also occur if the dimensions of the objects are the same, but the attribute names are different. ' + \
+        'This is intentionally done to prevent operations done on objects of the same dimensionality, but in' + \
+        'different vector spaces or coordinate systems.'
+    signature_error_description = \
+        'Signature mismatch. The dimensions of the objects are the same, but the attribute names are ' + \
+        'different. This error is intentionally thrown to prevent operations done on objects of the same ' + \
+        'dimensionality, but in different vector spaces or coordinate systems.'
 
     def rep(self):
         rep_str = '('
         for val in self._values:
-            rep_str += '%.2f, ' % val
+            rep_str += '%.2f, ' % val.real if val.imag == 0 else '%.2f + %.2fj, ' % (val.real, val.imag)
         return rep_str[:len(rep_str) - 2] + ')'
 
     multifunction_dict.update({'__repr__': rep})
@@ -85,11 +94,7 @@ def operator_function_factory(property_indices) -> dict:
         # string comparison here is yucky but because each type is created dynamically, they don't match even if the
         # signatures are the same. So it's useful for at least checking that.
         if str(type(other)) != str(type(self)) or self.signature != other.signature:
-            raise TypeError(
-                f'This operation is not defined for types {str(type(self))} and {str(type(other))}. This error can '
-                f'also occur if the dimensions of the objects are the same, but the attribute names are different. '
-                f'This is intentionally done to prevent operations done on objects of the same dimensionality, but in'
-                f'different vector spaces or coordinate systems.')
+            raise TypeError(type_error_description % (str(type(self)), str(type(other))))
 
         for i in range(0, self.dimension):
             # TODO: Define a better way of dealing with floating point imprecision than just rounding off at 8 decimals
@@ -112,17 +117,14 @@ def operator_function_factory(property_indices) -> dict:
 
         if str(type(other)) == str(type(self)):
             if self.signature != other.signature:
-                raise TypeError(
-                    f'Signature mismatch. The dimensions of the objects are the same, but the attribute names are '
-                    f'different. This error is intentionally thrown to prevent operations done on objects of the same '
-                    f'dimensionality, but in different vector spaces or coordinate systems.')
+                raise TypeError(signature_error_description)
 
             for i in range(0, final_answer.dimension):
                 final_answer[i] += other[i]
 
         else:
             for i in range(0, final_answer.dimension):
-                final_answer[i] += other
+                final_answer[i] += complex(other)
 
         return final_answer
 
@@ -144,22 +146,61 @@ def operator_function_factory(property_indices) -> dict:
     multifunction_dict.update({'__rsub__': rsub})
 
     def mul(self, other):
-        pass
+        final_answer = deepcopy(self)
+
+        if str(type(other)) == str(type(self)):
+            if self.signature != other.signature:
+                raise TypeError(signature_error_description)
+
+            for i in range(0, final_answer.dimension):
+                final_answer[i] *= other[i]
+
+        else:
+            for i in range(0, final_answer.dimension):
+                final_answer[i] *= complex(other)
+
+        return final_answer
 
     multifunction_dict.update({'__mul__': mul})
 
     def rmul(self, other):
-        pass
+        return self.__mul__(other)
 
     multifunction_dict.update({'__rmul__': rmul})
 
     def truediv(self, other):
-        pass
+        final_answer = deepcopy(self)
+
+        if str(type(other)) == str(type(self)):
+            if self.signature != other.signature:
+                raise TypeError(signature_error_description)
+
+            for i in range(0, final_answer.dimension):
+                final_answer[i] /= other[i]
+
+        else:
+            for i in range(0, final_answer.dimension):
+                final_answer[i] /= complex(other)
+
+        return final_answer
 
     multifunction_dict.update({'__truediv__': truediv})
 
     def rtruediv(self, other):
-        pass
+        final_answer = deepcopy(self)
+
+        if str(type(other)) == str(type(self)):
+            if self.signature != other.signature:
+                raise TypeError(signature_error_description)
+
+            for i in range(0, final_answer.dimension):
+                final_answer[i] = other[i] / final_answer[i]
+
+        else:
+            for i in range(0, final_answer.dimension):
+                final_answer[i] = complex(other) / final_answer[i]
+
+        return final_answer
 
     multifunction_dict.update({'__rtruediv__': rtruediv})
 
@@ -167,20 +208,46 @@ def operator_function_factory(property_indices) -> dict:
         final_answer = deepcopy(self)
 
         for i in range(0, final_answer.dimension):
-            final_answer[i] = -1 * final_answer[i]
+            final_answer[i] = -1.0 * final_answer[i]
 
         return final_answer
 
     multifunction_dict.update({'__neg__': neg})
 
     def pw(self, power, modulo=None):
-        pass
+        final_answer = deepcopy(self)
+
+        for i in range(0, final_answer.dimension):
+            if modulo is None:
+                final_answer[i] = pow(final_answer[i], power)
+            else:
+                final_answer[i] = pow(final_answer[i], power, modulo)
+
+        return final_answer
 
     multifunction_dict.update({'__pow__': pw})
 
-    def rpow(self, other):
-        pass
+    def rpow(self, other, modulo=None):
+        final_answer = deepcopy(self)
+
+        for i in range(0, final_answer.dimension):
+            if modulo is None:
+                final_answer[i] = pow(other, final_answer[i])
+            else:
+                final_answer[i] = pow(other, final_answer[i], modulo)
+
+        return final_answer
 
     multifunction_dict.update({'__rpow__': rpow})
+
+    def inv(self):
+        final_answer = deepcopy(self)
+
+        for i in range(0, final_answer.dimension):
+            final_answer[i] = 1.0 / final_answer[i]
+
+        return final_answer
+
+    multifunction_dict.update({'__invert__': inv})
 
     return multifunction_dict

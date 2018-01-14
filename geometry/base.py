@@ -1,4 +1,5 @@
-from geometry.factories import *
+import numpy as np
+from geometry.factories import point
 
 
 class Geometry:
@@ -57,7 +58,8 @@ def Point(*args, **kwargs):
     Once the class is created, it is instanced and its values are set. The function then returns that instance as if it
     were just initialized.
     """
-    internal_array = np.asarray(list(args) + list(kwargs.values()))
+    # TODO: Support complex numbers
+    internal_array = np.asarray([complex(x) for x in args] + [complex(x) for x in kwargs.values()])
 
     class_attr_dict = {}
 
@@ -68,19 +70,19 @@ def Point(*args, **kwargs):
     # Use a predefined function factory to create getters and setters that address internal_array at the proper index
     # when the property is called
     for property_name in property_name_index:
-        property_obj = key_lookup_property_factory(property_name[1])
+        property_obj = point.key_lookup_property_factory(property_name[1])
         class_attr_dict.update({property_name[0]: property_obj})
 
     # Additional function factories to create metaclass-wide functions and properties
-    class_attr_dict.update({'__getitem__': getitem_factory()})
-    class_attr_dict.update({'__setitem__': setitem_factory()})
+    class_attr_dict.update({'__getitem__': point.getitem_factory()})
+    class_attr_dict.update({'__setitem__': point.setitem_factory()})
 
     # Assign functions for the standard math operators
-    class_attr_dict.update(operator_function_factory(property_name_index))
+    class_attr_dict.update(point.operator_function_factory(property_name_index))
 
     # Make sure to override the property getters in Geometry, otherwise we'll throw errors when reading them
-    class_attr_dict.update({'dimension': dimension_property_factory()})
-    class_attr_dict.update({'signature': signature_property_factory(len(internal_array), property_name_index)})
+    class_attr_dict.update({'dimension': point.dimension_property_factory()})
+    class_attr_dict.update({'signature': point.signature_property_factory(len(internal_array), property_name_index)})
 
     # Create the class, instance it, and set values of properties before returning our newly instanced class object
     # Make sure to inherit from the Geometry class

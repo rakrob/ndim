@@ -90,6 +90,10 @@ def test_repr():
 
     assert str(x) == "(1.00, 2.00, 3.00)"
 
+    y = Point(0, 4 + 3j, 7)
+
+    assert str(y) == "(0.00, 4.00 + 3.00j, 7.00)"
+
 
 def test_hash():
     x = Point(1, 2, 3)
@@ -166,3 +170,44 @@ def test_subtract():
     assert z - 2 == x
 
     assert 5 - z == w
+
+
+def test_inverse():
+    x = Point(2, 3, 4)
+    y = Point(1.0 / 2.0, 1.0 / 3.0, 1.0 / 4.0)
+
+    assert ~x == y
+    assert ~y == x
+
+
+def test_multiplication():
+    x = Point(1, 2, 3.5)
+    y = Point(2, 4, 2)
+
+    z = Point(2, 8, 7)
+    q = Point(2, 4, 7)
+
+    assert x * y == z
+    assert x * 2 == 2 * x == q
+
+
+def test_division():
+    x = Point(4, 2, 10)
+    y = Point(2, 1, 5)
+
+    z = Point(2, 2, 2)
+
+    q = Point(1.0 / 2.0, 1, 1.0 / 5.0)
+
+    assert x / y == z
+    assert x / 2 == y
+    assert 2 / x == q
+
+
+def test_exponentiation():
+    x = Point(1, 2, 3)
+    y = Point(1, 4, 9)
+    z = Point(2, 4, 8)
+
+    assert x ** 2 == y
+    assert 2 ** x == z
