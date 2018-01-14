@@ -1,5 +1,16 @@
 import numpy as np
-from copy import deepcopy
+
+
+def init_factory(parent_class=None) -> callable:
+    """Function factory to initialize a parent class if there is one, else return a basic __init__."""
+    if parent_class is None:
+        def init(self):
+            pass
+    else:
+        def init(self):
+            parent_class.__init__(self)
+
+    return init
 
 
 def getitem_factory() -> callable:
@@ -59,17 +70,14 @@ def signature_property_factory(dimension, property_indices) -> property:
 
 
 def operator_function_factory(property_indices) -> dict:
-    """Defines custom functions for the operators +, -, *, /, ==, and **, as well as __hash__ and __repr__"""
+    """Defines custom functions for the operators == and !=, as well as __hash__ and __repr__"""
     multifunction_dict = {}
     type_error_description = \
         'This operation is not defined for types %s and %s. This error can ' + \
         'also occur if the dimensions of the objects are the same, but the attribute names are different. ' + \
         'This is intentionally done to prevent operations done on objects of the same dimensionality, but in' + \
         'different vector spaces or coordinate systems.'
-    signature_error_description = \
-        'Signature mismatch. The dimensions of the objects are the same, but the attribute names are ' + \
-        'different. This error is intentionally thrown to prevent operations done on objects of the same ' + \
-        'dimensionality, but in different vector spaces or coordinate systems.'
+    property_list = tuple([prop[0] for prop in property_indices])
 
     def rep(self):
         rep_str = '('
@@ -85,14 +93,25 @@ def operator_function_factory(property_indices) -> dict:
 
     multifunction_dict.update({'__hash__': hsh})
 
+    # Hijacking __dir__ allows us to get a clean representation of all the dimensions of the object without having to
+    # exclude other class attributes in __dict__
+    def directory(self):
+        return property_list
+
+    multifunction_dict.update({'__dir__': directory})
+
     def eq(self, other):
         # The philosophy here is that, while comparing the hashes between Points would probably be less of a headache,
         # 1. Best practices dictate an error should be thrown when two attribute sets don't match, and
         # 2. If another completely different object of a different class hashes to the same value, what good is an
         # equality function anyhow?
-
+        #
         # string comparison here is yucky but because each type is created dynamically, they don't match even if the
         # signatures are the same. So it's useful for at least checking that.
+        #
+        # The other option is to create a large table of classes and store them, so that, if we were to generate a
+        # class with the same signature, we'd just use the previously created one. That's equally as messy, I think,
+        # because now we have global state, which is less than ideal for a library like this.
         if str(type(other)) != str(type(self)) or self.signature != other.signature:
             raise TypeError(type_error_description % (str(type(self)), str(type(other))))
 
@@ -110,144 +129,5 @@ def operator_function_factory(property_indices) -> dict:
         return not self.__eq__(other)
 
     multifunction_dict.update({'__ne__': ne})
-
-    def add(self, other):
-        # By using a deepcopy we don't have to worry about creating a whole new class just to make another point
-        final_answer = deepcopy(self)
-
-        if str(type(other)) == str(type(self)):
-            if self.signature != other.signature:
-                raise TypeError(signature_error_description)
-
-            for i in range(0, final_answer.dimension):
-                final_answer[i] += other[i]
-
-        else:
-            for i in range(0, final_answer.dimension):
-                final_answer[i] += complex(other)
-
-        return final_answer
-
-    multifunction_dict.update({'__add__': add})
-
-    def radd(self, other):
-        return self.__add__(other)
-
-    multifunction_dict.update({'__radd__': radd})
-
-    def sub(self, other):
-        return self.__add__(- other)
-
-    multifunction_dict.update({'__sub__': sub})
-
-    def rsub(self, other):
-        return self.__neg__().__add__(other)
-
-    multifunction_dict.update({'__rsub__': rsub})
-
-    def mul(self, other):
-        final_answer = deepcopy(self)
-
-        if str(type(other)) == str(type(self)):
-            if self.signature != other.signature:
-                raise TypeError(signature_error_description)
-
-            for i in range(0, final_answer.dimension):
-                final_answer[i] *= other[i]
-
-        else:
-            for i in range(0, final_answer.dimension):
-                final_answer[i] *= complex(other)
-
-        return final_answer
-
-    multifunction_dict.update({'__mul__': mul})
-
-    def rmul(self, other):
-        return self.__mul__(other)
-
-    multifunction_dict.update({'__rmul__': rmul})
-
-    def truediv(self, other):
-        final_answer = deepcopy(self)
-
-        if str(type(other)) == str(type(self)):
-            if self.signature != other.signature:
-                raise TypeError(signature_error_description)
-
-            for i in range(0, final_answer.dimension):
-                final_answer[i] /= other[i]
-
-        else:
-            for i in range(0, final_answer.dimension):
-                final_answer[i] /= complex(other)
-
-        return final_answer
-
-    multifunction_dict.update({'__truediv__': truediv})
-
-    def rtruediv(self, other):
-        final_answer = deepcopy(self)
-
-        if str(type(other)) == str(type(self)):
-            if self.signature != other.signature:
-                raise TypeError(signature_error_description)
-
-            for i in range(0, final_answer.dimension):
-                final_answer[i] = other[i] / final_answer[i]
-
-        else:
-            for i in range(0, final_answer.dimension):
-                final_answer[i] = complex(other) / final_answer[i]
-
-        return final_answer
-
-    multifunction_dict.update({'__rtruediv__': rtruediv})
-
-    def neg(self):
-        final_answer = deepcopy(self)
-
-        for i in range(0, final_answer.dimension):
-            final_answer[i] = -1.0 * final_answer[i]
-
-        return final_answer
-
-    multifunction_dict.update({'__neg__': neg})
-
-    def pw(self, power, modulo=None):
-        final_answer = deepcopy(self)
-
-        for i in range(0, final_answer.dimension):
-            if modulo is None:
-                final_answer[i] = pow(final_answer[i], power)
-            else:
-                final_answer[i] = pow(final_answer[i], power, modulo)
-
-        return final_answer
-
-    multifunction_dict.update({'__pow__': pw})
-
-    def rpow(self, other, modulo=None):
-        final_answer = deepcopy(self)
-
-        for i in range(0, final_answer.dimension):
-            if modulo is None:
-                final_answer[i] = pow(other, final_answer[i])
-            else:
-                final_answer[i] = pow(other, final_answer[i], modulo)
-
-        return final_answer
-
-    multifunction_dict.update({'__rpow__': rpow})
-
-    def inv(self):
-        final_answer = deepcopy(self)
-
-        for i in range(0, final_answer.dimension):
-            final_answer[i] = 1.0 / final_answer[i]
-
-        return final_answer
-
-    multifunction_dict.update({'__invert__': inv})
 
     return multifunction_dict

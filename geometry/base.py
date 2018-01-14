@@ -1,5 +1,5 @@
 import numpy as np
-from geometry.factories import point
+from geometry.factories import point, vector
 
 
 class Geometry:
@@ -9,7 +9,7 @@ class Geometry:
     Some compromises were made here in order to enforce non-optional properties that really should be implemented for
     any custom geometries that might be included in ndim later. Any base classes (i.e., classes that are not
     collections) should inherit from Geometry and define a dimension and a signature, in order to make absolutely sure
-    that coordinates systems do not get mismatched at runtime.
+    that coordinate systems do not get mismatched at runtime.
 
     Enforcing the mandatory override of properties isn't exactly pythonic, but effort should be made going forward
     to keep the number of mandatory properties to a minimum.
@@ -58,7 +58,6 @@ def Point(*args, **kwargs):
     Once the class is created, it is instanced and its values are set. The function then returns that instance as if it
     were just initialized.
     """
-    # TODO: Support complex numbers
     internal_array = np.asarray([complex(x) for x in args] + [complex(x) for x in kwargs.values()])
 
     class_attr_dict = {}
@@ -67,22 +66,25 @@ def Point(*args, **kwargs):
     property_name_index = tuple(
         zip(kwargs.keys(), [i + len(args) for i in range(0, len(kwargs.keys()))]))
 
+    # Superclass initialization inside of init function
+    class_attr_dict.update({'__init__': point.init_factory(Geometry)})
+
+    # Additional function factories to create metaclass-wide functions and properties
+    class_attr_dict.update({'__getitem__': point.getitem_factory()})
+    class_attr_dict.update({'__setitem__': point.setitem_factory()})
+
     # Use a predefined function factory to create getters and setters that address internal_array at the proper index
     # when the property is called
     for property_name in property_name_index:
         property_obj = point.key_lookup_property_factory(property_name[1])
         class_attr_dict.update({property_name[0]: property_obj})
 
-    # Additional function factories to create metaclass-wide functions and properties
-    class_attr_dict.update({'__getitem__': point.getitem_factory()})
-    class_attr_dict.update({'__setitem__': point.setitem_factory()})
-
-    # Assign functions for the standard math operators
-    class_attr_dict.update(point.operator_function_factory(property_name_index))
-
     # Make sure to override the property getters in Geometry, otherwise we'll throw errors when reading them
     class_attr_dict.update({'dimension': point.dimension_property_factory()})
     class_attr_dict.update({'signature': point.signature_property_factory(len(internal_array), property_name_index)})
+
+    # Assign functions for some standard operators, equality, etc.
+    class_attr_dict.update(point.operator_function_factory(property_name_index))
 
     # Create the class, instance it, and set values of properties before returning our newly instanced class object
     # Make sure to inherit from the Geometry class
@@ -91,3 +93,55 @@ def Point(*args, **kwargs):
     point_instance._values = internal_array
 
     return point_instance
+
+
+def Vector(*args, **kwargs):
+    """
+    Returns an instance of a vector with dimension equal to the number of arguments.
+
+    Vector is a function that acts as a "Mock Class" that, through the use of metaprogramming, creates a class with an
+    addressable underlying Point class, but with additional operators that are only valid for vectors. Vectors can be
+    created with a list of numeric arguments, a list of keyword arguments, a combination of both, or a Point. However,
+    keyword arguments must always come after non-keyword arguments, as with Points.
+
+    Once the class is created, it is instanced and its values are set. The function then returns that instance as if it
+    were just initialized.
+    """
+    class_attr_dict = {}
+    repr_point = None
+
+    # If vector is initialized with a point, use it and its underlying properties, otherwise, create a new point
+    if len(args) > 0:
+        arg = args[0]
+        type_repr = str(type(arg))
+        if len(type_repr) > 7 \
+                and type_repr[len(type_repr) - 7:len(type_repr) - 2] == 'Point' \
+                and Geometry in arg.__class__.__bases__:
+            repr_point = arg
+
+    if repr_point is None:
+        repr_point = Point(*args, **kwargs)
+
+    # Superclass initialization inside of init function
+    class_attr_dict.update({'__init__': vector.init_factory(Geometry)})
+
+    class_attr_dict.update({'__getitem__': vector.getitem_factory()})
+    class_attr_dict.update({'__setitem__': vector.setitem_factory()})
+
+    # Use a predefined function factory to create getters and setters that address _point at the proper index
+    # when the property is called
+    for property_name in dir(repr_point):
+        property_obj = vector.key_lookup_property_factory(property_name)
+        class_attr_dict.update({property_name: property_obj})
+
+    class_attr_dict.update({'dimension': vector.dimension_property_factory()})
+    class_attr_dict.update({'signature': vector.signature_property_factory(repr_point)})
+
+    # Assign functions for the standard math operators
+    class_attr_dict.update(vector.operator_function_factory())
+
+    vector_cls = type(f'{repr_point.dimension}D Vector', (Geometry,), class_attr_dict)
+    vector_instance = vector_cls()
+    vector_instance._point = repr_point
+
+    return vector_instance
