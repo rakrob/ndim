@@ -1,5 +1,5 @@
-from copy import deepcopy
 import numpy as np
+from copy import deepcopy
 
 _type_error_description = \
     'This operation is not defined for types %s and %s. This error can ' + \

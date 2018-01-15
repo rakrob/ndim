@@ -1,6 +1,6 @@
+import numpy as np
 from geometry.base import Point, Vector
 from geometry.functions import vector
-import numpy as np
 
 
 def test_vector_initialization():
