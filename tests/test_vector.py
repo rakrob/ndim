@@ -1,4 +1,6 @@
-from geometry.base import *
+from geometry.base import Point, Vector
+from geometry.functions import vector
+import numpy as np
 
 
 def test_vector_initialization():
@@ -214,3 +216,65 @@ def test_invert():
     y = Vector(.5, 1.0 / 3.0, .25)
 
     assert ~x == y
+
+
+def test_inner_product():
+    a = Vector(1, 1, 1)
+    b = Vector(-3, -3, -3)
+
+    assert vector.inner(a, b) == -9.0
+
+
+def test_norm():
+    a = Vector(3, 4)
+
+    assert round(a.norm(), 8) == 5.00
+
+
+def test_unit_vector():
+    a = Vector(3, 4)
+    b = Vector(3.0 / 5.0, 4.0 / 5.0)
+
+    assert a.unit() == b
+
+
+def test_cross_product():
+    a = Vector(1.0, 2.0, 3.0)
+    b = Vector(4.0, 5.0, 6.0)
+
+    c = Vector(-3.0, 6.0, -3.0)
+
+    assert vector.cross(a, b) == c
+    assert vector.cross(b, a) != c
+
+    assert vector.inner(a, vector.cross(a, b)) == 0.0
+    assert vector.inner(vector.cross(a, b), b) == 0.0
+
+    assert vector.cross(a, b).norm() ** 2 == (a.norm() ** 2) * (b.norm() ** 2) - vector.inner(a, b) ** 2
+
+    assert vector.cross(a, b) == vector.cross(-b, a)
+
+
+def test_cross_product_7d():
+    a = Vector(1, 2, 3, 4, 5, 6, 7)
+    b = Vector(8, 9, 10, 11, 12, 13, 14)
+
+    assert vector.inner(a, vector.cross(a, b)) == 0.0
+    assert vector.inner(vector.cross(a, b), b) == 0.0
+
+    assert round(vector.cross(a, b).norm() ** 2, 8) == round(
+        (a.norm() ** 2) * (b.norm() ** 2) - vector.inner(a, b) ** 2, 8)
+
+    assert vector.cross(a, b) == vector.cross(-b, a)
+
+
+def test_angle():
+    a = Vector(1.0, 0.0, 0.0)
+    b = Vector(0.0, 1.0, 0.0)
+
+    assert np.isclose(vector.angle(a, b), np.deg2rad(90.0))
+
+    a = Vector(1.0, 1.0, 0.0)
+    b = Vector(0.0, 1.0, 0.0)
+
+    assert np.isclose(vector.angle(a, b), np.deg2rad(45.0))

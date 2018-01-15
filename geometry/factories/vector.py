@@ -1,5 +1,6 @@
 import numpy as np
 from copy import deepcopy
+from geometry.functions import vector
 
 
 def init_factory(parent_class=None) -> callable:
@@ -216,3 +217,23 @@ def operator_function_factory() -> dict:
     multifunction_dict.update({'__invert__': inv})
 
     return multifunction_dict
+
+
+def norm_function_factory() -> callable:
+    """Function factory to return a vector norm in complex space."""
+
+    def norm(self) -> complex:
+        inner_product = vector.inner(self, self)
+
+        return inner_product ** 0.5
+
+    return norm
+
+
+def unit_function_factory() -> callable:
+    """Function factory to return a unit vector - that is, a vector with magnitude 1 and the same direction as self."""
+
+    def unit(self):
+        return self / self.norm()
+
+    return unit

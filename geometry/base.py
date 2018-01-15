@@ -140,6 +140,10 @@ def Vector(*args, **kwargs):
     # Assign functions for the standard math operators
     class_attr_dict.update(vector.operator_function_factory())
 
+    # Vector norm and unit vector should be a callable from inside the class
+    class_attr_dict.update({'norm': vector.norm_function_factory()})
+    class_attr_dict.update({'unit': vector.unit_function_factory()})
+
     vector_cls = type(f'{repr_point.dimension}D Vector', (Geometry,), class_attr_dict)
     vector_instance = vector_cls()
     vector_instance._point = repr_point

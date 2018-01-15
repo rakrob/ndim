@@ -1,4 +1,4 @@
-from geometry.base import *
+from geometry.base import Point
 
 
 def test_point_initialization():
